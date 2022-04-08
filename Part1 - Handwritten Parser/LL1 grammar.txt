@@ -1,0 +1,10 @@
+1.exp -> term exp2
+2.exp2 -> '^' exp2
+3.exp2 -> ε
+
+4.term -> num term2
+5.term2 -> '&' term2
+6.term2 -> ε
+
+7.num -> '0' | '1' | '2' | '3' | '4' | '5' | '6' | '7' | '8' | '9'
+8.num -> '(' exp ')'

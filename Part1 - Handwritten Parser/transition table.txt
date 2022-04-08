@@ -1,0 +1,6 @@
+            $       ^       &       (       )      0...9
+exp         
+exp2        
+term        
+term2       
+num         
