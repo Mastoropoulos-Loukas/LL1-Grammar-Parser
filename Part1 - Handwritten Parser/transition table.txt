@@ -1,6 +1,6 @@
             $       ^       &       (       )      0...9
-exp         
-exp2        
-term        
-term2       
-num         
+exp        error   error   error    #1     error     #1 
+exp2        #3      #2     error   error    #3      error
+term       error   error   error    #4     error     #4
+term2       #6      #6      #5     error    #6      error
+num        error   error   error    #8     error     #7
