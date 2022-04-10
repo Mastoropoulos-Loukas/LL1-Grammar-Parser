@@ -1,0 +1,117 @@
+/* Simple +/-/* expression language; parser evaluates constant expressions on the fly*/
+/**
+ *  Package and Import Specifications
+ */
+import java_cup.runtime.*;
+
+/**
+ *  Usercode Components
+ */
+parser code {:
+    // Connect this parser to a scanner!
+    Scanner s;
+    Parser(Scanner s){ this.s=s; }
+:}
+
+/* define how to connect to the scanner! */
+scan with {: return s.next_token(); :};
+
+/**
+ *  Symbol Lists
+ */
+
+/* Terminals (tokens returned by the scanner). */
+terminal            PLUS, LPAREN, RPAREN, LCURLY, RCURLY, COMMA, IF, ELSE, REVERSE, PREFIX;
+terminal String     STRING_LITERAL, IDENTIFIER;        // our scanner provides numbers as strings
+
+
+/*  Non terminals */
+non terminal            programm;
+non terminal String     declaration, operation, term, call, call_list, body, combine_list, argument, argument_list, is_prefix_of, if_statement;
+
+/**
+ *  Precedence Declarations
+ */
+precedence left PREFIX;
+precedence left ELSE;
+precedence right IF;
+precedence left PLUS;
+precedence left REVERSE;
+precedence left IDENTIFIER;
+
+/**
+ *  The Grammar Rules
+ */
+
+programm        ::= combine_list:c{:
+                        String parts[] = c.split("#");
+                        String declarations = parts[0];
+                        String calls = parts[1];
+                        System.out.println("public class Main{");
+                        System.out.println("\tpublic static void main(String[] args) {");
+                        System.out.printf("%s", calls);
+                        System.out.println("\t}\n");
+                        System.out.printf("%s", declarations);
+                        System.out.println("}");
+                    :}
+                    ;
+
+operation       ::= operation:t1 PLUS operation:t2 {: RESULT = String.format("%s + %s", t1, t2); :}   /* concat */
+                |   REVERSE operation:t {:
+                        RESULT = String.format("new StringBuilder(%s).reverse().toString()", t); 
+                    :}
+                |   term:i {: RESULT = i; :}
+                |   if_statement:i {:
+                        RESULT = i;
+                    :}
+                |   {: RESULT = new String(""); :}
+                ;
+
+is_prefix_of    ::= operation:o1 PREFIX operation:o2 {:
+                        RESULT = String.format("(%s).startsWith(%s)", o2, o1);
+                    :}
+                ;
+
+combine_list    ::= declaration:d combine_list:c {:RESULT = String.format("%s%s", d, c); :}
+                | call_list:c {: 
+                    RESULT = String.format("#%s", c); 
+                :}
+                ;
+
+term            ::= IDENTIFIER:d {: RESULT = String.format("%s", d); :}
+                |   call:c {: RESULT = c; :}
+                |   STRING_LITERAL:s {: RESULT = String.format("\"%s\"", s); :}
+                ;
+
+declaration     ::= IDENTIFIER:i LPAREN argument_list:l RPAREN LCURLY body:b RCURLY {:
+                        String arguments_with_type = l.isEmpty() ? "" : "String " + l.replace(", ", ", String ");
+                        RESULT = String.format("\tpublic static String %s(%s){\n\t\t%s\n\t}\n", i, arguments_with_type, b);         
+                    :}
+                    ;
+
+if_statement    ::= IF LPAREN is_prefix_of:p RPAREN operation:o1 ELSE operation:o2 {:
+                        RESULT = String.format("((%s) ? %s : %s)", p, o1, o2);
+                    :}
+                ;
+
+body            ::= operation:o {:
+                        RESULT = String.format("return %s;", o);
+                    :}
+                ;
+
+argument       ::=  term:t {: RESULT = t; :}
+                |   {: RESULT = new String(""); :}
+                ;
+
+argument_list  ::= argument:a COMMA argument_list:l {: RESULT = String.format("%s, %s", a, l); :}
+                |   argument:a {: RESULT = a; :}
+                ;
+
+call            ::= IDENTIFIER:i LPAREN argument_list:l RPAREN {:
+                        RESULT = String.format("%s(%s)", i, l);
+                    :}
+                ;
+
+call_list       ::= call:c call_list:l {: RESULT = String.format("\t\tSystem.out.println(%s);\n%s", c, l); :}
+                | {: RESULT =  new String(""); :}
+                ;
